@@ -196,7 +196,6 @@ async function exportXlsx(){
   const rows=build();if(!rows.length)return toast("Nothing logged for this client this month.");
   if(!window.ExcelJS)return toast("The Excel library didn’t load. Check your connection and reload.");
   let dl=null;try{dl=await claude.use("downloads")}catch(e){}
-  if(!dl)return toast("Downloads aren’t available here. Try Print instead.");
   try{
     const cl=S.c.find(c=>c.id===sc),m=mm(),T=totals(rows),nc=showH?5:4,dc=showH?4:3,col=String.fromCharCode(64+dc);
     const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("Timesheet",{views:[{showGridLines:false}]});
@@ -214,7 +213,10 @@ async function exportXlsx(){
     ws.getCell(tr,dc).font={bold:true};
     const buf=await wb.xlsx.writeBuffer();
     const fn=("Timesheet_"+(cl.name||"client")+"_"+ym+".xlsx").replace(/[^\w.-]+/g,"_");
-    await dl.save({filename:fn,data:new Blob([buf])});toast("Timesheet saved");
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    if(dl)await dl.save({filename:fn,data:blob});
+    else{const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+    toast("Timesheet saved");
   }catch(e){if(!e||e.code!=="declined")toast("Couldn’t save the file. Try again.")}
 }
 
